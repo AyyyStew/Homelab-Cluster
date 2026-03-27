@@ -16,7 +16,7 @@ A fully automated, Infrastructure-as-Code homelab Kubernetes cluster built on [T
 │  │  │ 192.168.0.201      │  │  │  │192.168.0.204  │  │  │
 │  │  │ 2 vCPU / 4GB RAM   │  │  │  │8 vCPU / 16GB  │  │  │
 │  │  └────────────────────┘  │  │  └───────────────┘  │  │
-│  │  ┌────────────────────┐  │  │    KVM / libvirt     │  │
+│  │  ┌────────────────────┐  │  │    KVM / libvirt    │  │
 │  │  │ talos-w-1          │  │  └─────────────────────┘  │
 │  │  │ Worker             │  │                           │
 │  │  │ 192.168.0.202      │  │                           │
