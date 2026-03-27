@@ -1,0 +1,14 @@
+# Kubeconfig / Talos credentials
+kubeconfig
+**/kubeconfig
+talos/talosconfig
+talos/controlplane.yaml
+talos/worker.yaml
+talos/generated/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+terraform/terraform.tfvars
+terraform/talos/
