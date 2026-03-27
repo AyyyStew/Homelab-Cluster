@@ -1,0 +1,46 @@
+---
+- name: Wait for desktop worker Talos maintenance API
+  hosts: talos-desktop
+  gather_facts: false
+  tasks:
+    - name: Wait for port 50000
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 50000
+        timeout: 300
+
+- name: Apply Talos worker config to desktop VM
+  hosts: talos-desktop
+  gather_facts: false
+  tasks:
+    - name: Apply worker config
+      ansible.builtin.command:
+        cmd: >
+          talosctl apply-config --insecure
+          --nodes {{ ansible_host }}
+          --file {{ talos_generated_dir }}/worker.yaml
+      register: apply_result
+      failed_when:
+        - apply_result.rc != 0
+        - '"certificate required" not in (apply_result.stderr | default(""))'
+        - '"AlreadyExists" not in (apply_result.stderr | default(""))'
+      changed_when: apply_result.rc == 0
+
+- name: Wait for desktop worker to come back after install
+  hosts: talos-desktop
+  gather_facts: false
+  tasks:
+    - name: Wait for node to start rebooting
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 50000
+        state: stopped
+        timeout: 60
+      ignore_errors: true
+
+    - name: Wait for node to finish rebooting
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 50000
+        state: started
+        timeout: 600

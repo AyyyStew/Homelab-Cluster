@@ -1,0 +1,69 @@
+---
+- name: Set up desktop host for KVM and bridged networking
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Install QEMU
+      ansible.builtin.pacman:
+        name: qemu-full
+        state: present
+
+    - name: Enable and start libvirtd
+      ansible.builtin.systemd:
+        name: libvirtd
+        enabled: true
+        state: started
+
+    - name: Add user to libvirt group
+      ansible.builtin.user:
+        name: "{{ lookup('env', 'USER') }}"
+        groups: libvirt
+        append: true
+
+    - name: Check if bridge br0 already exists
+      ansible.builtin.command:
+        cmd: nmcli con show br0
+      register: br0_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create bridge br0
+      ansible.builtin.command:
+        cmd: >
+          nmcli con add type bridge
+          con-name br0
+          ifname br0
+          bridge.mac-address 4c:ed:fb:c1:a8:62
+          ipv4.method auto
+          connection.autoconnect yes
+      when: br0_check.rc != 0
+
+    - name: Check if bridge slave already exists
+      ansible.builtin.command:
+        cmd: nmcli con show br0-slave-enp3s0
+      register: slave_check
+      failed_when: false
+      changed_when: false
+
+    - name: Add enp3s0 as bridge slave
+      ansible.builtin.command:
+        cmd: >
+          nmcli con add type bridge-slave
+          con-name br0-slave-enp3s0
+          ifname enp3s0
+          master br0
+          connection.autoconnect yes
+      when: slave_check.rc != 0
+
+    - name: Bring up bridge
+      ansible.builtin.command:
+        cmd: nmcli con up br0
+      when: br0_check.rc != 0
+
+    - name: Bring up bridge slave
+      ansible.builtin.command:
+        cmd: nmcli con up br0-slave-enp3s0
+      when: slave_check.rc != 0

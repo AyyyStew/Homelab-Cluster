@@ -1,6 +1,6 @@
 ---
 - name: Wait for Talos maintenance API on all nodes
-  hosts: all
+  hosts: controlplane:proxmox_workers
   gather_facts: false
   tasks:
     - name: Wait for port 50000
@@ -10,22 +10,28 @@
         timeout: 300
 
 - name: Generate Talos config
-  hosts: controlplane
+  hosts: localhost
   gather_facts: false
-  run_once: true
+
+  vars:
+    controlplane_endpoint: "{{ hostvars[groups['controlplane'][0]].ansible_host }}"
+
   tasks:
-    - name: Generate config if not present
+    - name: Ensure output dir exists
+      file:
+        path: "{{ talos_generated_dir }}"
+        state: directory
+
+    - name: Generate Talos configs
       ansible.builtin.command:
         cmd: >
           talosctl gen config {{ cluster_name }}
-          https://{{ ansible_host }}:6443
+          https://{{ controlplane_endpoint }}:6443
           --output-dir {{ talos_generated_dir }}
-          --config-patch @{{ talos_patches_dir }}/installer.yaml
           --force
-        creates: "{{ talos_generated_dir }}/talosconfig"
 
 - name: Apply Talos config to all nodes
-  hosts: all
+  hosts: controlplane:proxmox_workers
   gather_facts: false
   tasks:
     - name: Apply config
@@ -100,7 +106,7 @@
       ansible.builtin.file:
         path: "{{ lookup('env', 'HOME') }}/.kube"
         state: directory
-        mode: '0700'
+        mode: "0700"
 
     - name: Fetch kubeconfig to ~/.kube/config
       ansible.builtin.command:
