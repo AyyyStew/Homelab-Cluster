@@ -1,0 +1,4 @@
+repo_dir: "{{ playbook_dir | dirname }}"
+talos_generated_dir: "{{ repo_dir }}/talos/generated"
+talos_patches_dir: "{{ repo_dir }}/talos/patches"
+cluster_name: my-cluster

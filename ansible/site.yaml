@@ -1,0 +1,113 @@
+---
+- name: Wait for Talos maintenance API on all nodes
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for port 50000
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 50000
+        timeout: 300
+
+- name: Generate Talos config
+  hosts: controlplane
+  gather_facts: false
+  run_once: true
+  tasks:
+    - name: Generate config if not present
+      ansible.builtin.command:
+        cmd: >
+          talosctl gen config {{ cluster_name }}
+          https://{{ ansible_host }}:6443
+          --output-dir {{ talos_generated_dir }}
+          --config-patch @{{ talos_patches_dir }}/installer.yaml
+          --force
+        creates: "{{ talos_generated_dir }}/talosconfig"
+
+- name: Apply Talos config to all nodes
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Apply config
+      ansible.builtin.command:
+        cmd: >
+          talosctl apply-config --insecure
+          --nodes {{ ansible_host }}
+          --file {{ talos_generated_dir }}/{{ talos_role }}.yaml
+      register: apply_result
+      # rc != 0 with "certificate required" means the node is already
+      # configured and running secured TLS — treat as success
+      failed_when:
+        - apply_result.rc != 0
+        - '"certificate required" not in (apply_result.stderr | default(""))'
+        - '"AlreadyExists" not in (apply_result.stderr | default(""))'
+      changed_when: apply_result.rc == 0
+
+- name: Wait for control plane to come back after install
+  hosts: controlplane
+  gather_facts: false
+  tasks:
+    - name: Wait for node to start rebooting
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 50000
+        state: stopped
+        timeout: 60
+      # If the node was already configured it won't reboot, so this will
+      # time out — that's fine, ignore it and move on
+      ignore_errors: true
+
+    - name: Wait for node to finish rebooting
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 50000
+        state: started
+        timeout: 600
+
+- name: Bootstrap the cluster
+  hosts: controlplane
+  gather_facts: false
+  tasks:
+    - name: Check if etcd is already running
+      ansible.builtin.command:
+        cmd: >
+          talosctl
+          --talosconfig {{ talos_generated_dir }}/talosconfig
+          --nodes {{ ansible_host }}
+          services
+      register: services
+      failed_when: false
+      changed_when: false
+
+    - name: Bootstrap etcd
+      ansible.builtin.command:
+        cmd: >
+          talosctl bootstrap
+          --talosconfig {{ talos_generated_dir }}/talosconfig
+          --endpoints {{ ansible_host }}
+          --nodes {{ ansible_host }}
+      when: '"Running" not in services.stdout'
+      register: bootstrap_result
+      failed_when:
+        - bootstrap_result.rc != 0
+        - '"AlreadyExists" not in (bootstrap_result.stderr | default(""))'
+
+- name: Fetch kubeconfig
+  hosts: controlplane
+  gather_facts: false
+  tasks:
+    - name: Ensure ~/.kube exists
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'HOME') }}/.kube"
+        state: directory
+        mode: '0700'
+
+    - name: Fetch kubeconfig to ~/.kube/config
+      ansible.builtin.command:
+        cmd: >
+          talosctl kubeconfig {{ lookup('env', 'HOME') }}/.kube/config
+          --talosconfig {{ talos_generated_dir }}/talosconfig
+          --endpoints {{ ansible_host }}
+          --nodes {{ ansible_host }}
+          --force
+      changed_when: true
