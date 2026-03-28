@@ -28,6 +28,7 @@
           talosctl gen config {{ cluster_name }}
           https://{{ controlplane_endpoint }}:6443
           --output-dir {{ talos_generated_dir }}
+          --install-image factory.talos.dev/installer/dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586:v1.12.6
           --force
 
 - name: Apply Talos config to all nodes

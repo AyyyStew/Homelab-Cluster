@@ -1,0 +1,8 @@
+defaultSettings:
+  defaultReplicaCount: 2   # 3 workers available, 2 replicas is a safe default
+
+persistence:
+  defaultClassIsDefault: true   # make Longhorn the default StorageClass
+
+longhornUI:
+  replicas: 1

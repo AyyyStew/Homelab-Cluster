@@ -6,6 +6,9 @@ talos/controlplane.yaml
 talos/worker.yaml
 talos/generated/
 
+# Secrets
+kubernetes/.env
+
 # Terraform
 *.tfstate
 *.tfstate.backup

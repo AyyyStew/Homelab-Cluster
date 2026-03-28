@@ -10,7 +10,7 @@ resource "proxmox_virtual_environment_download_file" "talos_iso" {
   content_type = "iso"
   datastore_id = "local"
   node_name    = "proxmox"
-  url          = "https://factory.talos.dev/image/ef909f816be835a6236a401377846307a921533d6b218c2d8e95c6d9013ede06/v1.12.6/nocloud-amd64.iso"
+  url          = "https://factory.talos.dev/image/dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586/v1.12.6/metal-amd64.iso"
   file_name    = "talos-factory.iso"
 }
 
@@ -26,7 +26,7 @@ resource "proxmox_virtual_environment_vm" "talos" {
   }
 
   memory {
-    dedicated = each.value.role == "controlplane" ? 4096 : 2048
+    dedicated = 4096
   }
 
   # Boot from Talos ISO
@@ -38,7 +38,7 @@ resource "proxmox_virtual_environment_vm" "talos" {
   disk {
     datastore_id = "local-lvm"
     interface    = "scsi0"
-    size         = 20
+    size         = 50
   }
 
   network_device {

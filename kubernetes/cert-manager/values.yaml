@@ -1,0 +1,2 @@
+crds:
+  enabled: true   # install CRDs as part of the Helm release
