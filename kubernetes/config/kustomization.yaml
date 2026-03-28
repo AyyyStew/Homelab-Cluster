@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Shared config values used across the cluster.
+# Edit here and kustomize replacements propagate them to the right resources.
+
+configMapGenerator:
+  - name: cluster-config
+    literals:
+      - domain=ayyystew.com
+      - metallb_pool=192.168.0.210-192.168.0.220
+      - ingress_ip=192.168.0.210
+      - letsencrypt_email=alexsteward98@gmail.com

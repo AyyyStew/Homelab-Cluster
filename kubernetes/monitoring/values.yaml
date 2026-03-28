@@ -1,5 +1,8 @@
 grafana:
-  # adminPassword set via --set at install time, not stored here
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
 
   ingress:
     enabled: true

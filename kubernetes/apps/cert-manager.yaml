@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.jetstack.io
+      chart: cert-manager
+      targetRevision: v1.20.1
+      helm:
+        valueFiles:
+          - $values/kubernetes/cert-manager/values.yaml
+    - repoURL: https://github.com/AyyyStew/Homelab-Cluster.git
+      targetRevision: master
+      ref: values
+    - repoURL: https://github.com/AyyyStew/Homelab-Cluster.git
+      targetRevision: master
+      path: kubernetes/cert-manager
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
