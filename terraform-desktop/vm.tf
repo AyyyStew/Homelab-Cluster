@@ -47,6 +47,11 @@ resource "libvirt_domain" "desktop_worker" {
 
   cpu = {
     mode = "host-passthrough"
+    topology = {
+      sockets = 1
+      cores   = 4
+      threads = 2
+    }
   }
 
   os = {
