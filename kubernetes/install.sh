@@ -24,6 +24,11 @@ for ns in longhorn-system metallb-system monitoring; do
     --overwrite
 done
 
+# Pre-create Longhorn service account so its pre-upgrade hook can run on first install
+kubectl create serviceaccount longhorn-service-account \
+  --namespace longhorn-system \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 # Install Sealed Secrets controller — must exist before sealing secrets
 echo "==> Installing Sealed Secrets..."
 helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets \
