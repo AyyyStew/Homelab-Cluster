@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Bootstrap script — runs once to install ArgoCD and Sealed Secrets.
-# After this, run seal-secrets.sh then apply-root.sh to hand off to GitOps.
+# Bootstrap script — runs once to install ArgoCD, Sealed Secrets, and Longhorn.
+# After this, run seal-secrets.sh then gitops-handoff.sh to hand off to GitOps.
 #
 # Pre-requisites:
 #   1. kubeseal CLI installed (yay -S kubeseal)
@@ -12,6 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+helm repo add longhorn https://charts.longhorn.io
 helm repo update
 
 # Pre-create namespaces that need privileged pod security before ArgoCD deploys into them
@@ -24,10 +25,15 @@ for ns in longhorn-system metallb-system monitoring; do
     --overwrite
 done
 
-# Pre-create Longhorn service account so its pre-upgrade hook can run on first install
-kubectl create serviceaccount longhorn-service-account \
+# Install Longhorn via Helm — ArgoCD will adopt it after handoff.
+# Must be bootstrapped manually because its pre-upgrade hook requires RBAC
+# resources that don't exist until the chart itself creates them.
+echo "==> Installing Longhorn..."
+helm upgrade --install longhorn longhorn/longhorn \
   --namespace longhorn-system \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --version 1.11.1 \
+  --values "$SCRIPT_DIR/longhorn/values.yaml" \
+  --wait
 
 # Install Sealed Secrets controller — must exist before sealing secrets
 echo "==> Installing Sealed Secrets..."
