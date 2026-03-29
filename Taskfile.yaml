@@ -6,8 +6,9 @@ tasks:
     cmds:
       - task: tf-apply
       - task: bootstrap
-      - task: seal-secrets
       - task: k8s-install
+      - task: seal-secrets
+      - task: gitops-handoff
 
   tf-apply:
     desc: Create VMs in Proxmox
@@ -20,6 +21,11 @@ tasks:
     cmds:
       - ansible-playbook -i ansible/inventory.py ansible/site.yaml
 
+  k8s-install:
+    desc: Install Sealed Secrets and ArgoCD
+    cmds:
+      - ./kubernetes/install.sh
+
   seal-secrets:
     desc: Seal secrets with cluster public key and commit
     cmds:
@@ -28,10 +34,10 @@ tasks:
       - git commit -m "reseal secrets for new cluster" || true
       - git push
 
-  k8s-install:
-    desc: Install ArgoCD and hand off to GitOps
+  gitops-handoff:
+    desc: Apply root ArgoCD app — hands cluster to GitOps
     cmds:
-      - ./kubernetes/install.sh
+      - ./kubernetes/gitops-handoff.sh
 
   destroy:
     desc: Tear down Proxmox VMs
